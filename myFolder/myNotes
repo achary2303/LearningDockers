@@ -1,0 +1,191 @@
+Virtual Machines : Like independent houses.
+Dockers: Like Apartment. Share resources
+
+Latest version: 19.03
+
+Docker community Edition Vs Docker Enterprise Edition
+
+Releases:
+Edge release - every month
+Stable release - every 3 months
+
+
+Kitematic - for managing docker images
+
+docker save -o images.tar image1 [image2 ...] to save any images you want to keep.
+docker export -o myContainner1.tar container1 to export containers you want to keep
+
+
+docker run -it alpine sh
+docker hub - docker registry: stores images
+
+
+docker run docker.io/library/hello-world
+docker run library/hello-world
+
+docker images consists of one or more layers.
+docker files are like recipe or blueprint of what we want docker image to be
+
+
+docker image build -t web1 .
+where t is the tag.
+docker image build -t web1:1.0 .
+tag with version
+
+docker image inspect web1
+to inspect the image created. here web1
+
+docker container run --rm --name web1 -p 5000:5000 -e FLASK_APP=app.py -e FLASK_DEBUG=1 -v $PWD:/app  web1
+-- -v is used to mount the directory. Any changes in the directory will be copied to /app automatically
+
+docker container inspect web1
+--this will show the mount section with details
+
+docker container exec -it web1 sh
+--debug issues ...go into running container: web1
+
+docker container exec -it web1 flask --version
+
+docker container exec -it web1 touch hi.txt
+--create file hi.txt in both host (your machine) and container
+--in linux, it will create the file with root user bec docker is run as root user.
+docker container exec -it --user "$(ls -u)":"$(ls -g)" web1 touch hi.txt
+--this will create file as running user
+
+
+docker container run --rm  -it --name pythontesting python:3.6-alpine python
+--adhoc python env
+
+
+
+docker image tag web1 achary2303/web1:latest
+--create docker image with name achary2303/web1 from tag web1
+
+docker image push achary2303/web1
+--push docker to to hub.docker.com
+
+docker image rm -f c5d6
+--force delete images starting with c5d6
+
+docker container ls
+
+docker container run -it --rm --name web1 -p 5000:5000 -e FLASK_APP=app.py -d web1
+-it enable docker to handle various signal, terminal colors for interactive,
+--first port: bind port on docker host
+--second port: bind port within docker container
+-e environmental variables
+--(optional) --rm to removed the stopped containers once the container is stopped.
+--(optional) --name to name the containers. Make sure of name conflicts.
+--(optional) -d run container in background
+--(optional) -e FLASK_DEBUG=1  to open in debug mode for FLASH applcitions
+
+docker container logs web1
+--to show logs of the container
+docker container logs -f web1
+--tail logs..live logs
+docker container stats
+--returns real time metrix of running container
+
+docker container run -it --rm --name web1_2 -p 5000 -e FLASK_APP=app.py -d web1
+--removing second bind port, will automatically assign port to the application
+docker container run -it --rm --name web1_3 -p 5000 -e FLASK_APP=app.py -d --restart on-failure web1
+--  restart is used to restart the container on failure
+--  but this wont work bec we cannot have both --rm and --restart together
+
+
+docker container ls -a
+-a will show all the stopped containers
+
+docker ps -a -q
+--List all the stopped containers ID
+docker rm $(docker ps -a -q)
+--remove all the stopped containers
+
+docker container stop  youthful_mendel
+--stop running container youthful_mendel
+
+
+
+docker pull redis:3.2-alpine
+--pull redis from docker hub
+
+
+docker container run --rm -itd -p 6379:6379 --name redis  redis:3.2-alpine
+docker container run --rm -itd -p 5000:5000 -e FLASK_APP=app.py -e FLASK_DEBUG=1 --name web -v $PWD:/app web2
+
+
+docker network ls
+--if network not mentioned in container run, then bridge is default network
+
+docker network inspect bridge
+docker exec redis ifconfig
+docker exec -it redis redis-cli
+
+docker exec web ping 172.17.0.2
+-- here 172.17.0.2 is the ip of redis. You can get this by running docker exec redis ifconfig
+
+docker network create --driver bridge firstnetwork
+docker network inspect firstnetwork
+docker container run --rm -itd -p 5000:5000 -e FLASK_APP=app.py -e FLASK_DEBUG=1 --name web -v $PWD:/app --net firstnetwork web2
+docker container run --rm -itd --name redis -p 6379:6379 --net firstnetwork redis:3.2-alpine
+
+
+***Volumes - Persist data
+
+docker volume create web2_redis
+docker volume ls
+
+docker container run --rm -itd --name redis -p 6379:6379 --net firstnetwork -v web2_redis:/data  redis:3.2-alpine
+-v Volumes
+-- /data mount direcotry for redis
+
+
+docker container run --rm -itd --name web3 -p 5000:5000 -e FLASK_APP=app.py -e FLASK_DEBUG=1 -v $PWD:/app --net firstnetwork web3
+docker container run --rm -itd --name redis -p 6379:6379 --net firstnetwork -v web2_redis:/data --volumes-from web2  redis:3.2-alpine
+
+
+Commands:
+docker system df
+-- disc space
+docker system df -v
+-- disc space with details
+docker system info
+-- docker installation info. Usedfor bug report, verify docker installation
+docker info
+docker system prune
+--cleans docker - removes all
+docker system prune -f
+-- cleans without permissions
+docker system prune -a
+-- removes all images, dangerous
+docker container stop $(docker container ls -a -q)
+-- stops all containers that are stopped
+docker images --filter "dangling=true" -q
+-- show the ID of all the images which are <none>
+docker images --filter "dangling=true" -q --no-trunc
+-- show ID of all images which are none with full ID (do no truncate)
+
+
+
+Docker Compose:
+docker compose --help
+docker-compose build
+-- build the images web1
+docker-compose pull
+-- build images by pulling it from hub. redis
+docker-compose up
+-- runs the docker images
+
+docker-compose up --build -d
+-- runs all above commands together
+
+docker-compose ps
+
+docker-compose logs -f
+docker-compose restart
+docker-compose restart redis
+
+docker-compose exec web ls -la
+docker-compose exec web sh
+
+docker-compose run redis redis-server --version
